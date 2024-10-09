@@ -1,0 +1,44 @@
+- name: Playbook pour installer ou mettre à jour WinRAR pour tous les utilisateurs sur les hôtes Windows
+  hosts: windows
+  gather_facts: no
+  collections:
+    - ansible.windows
+
+  vars:
+    winrar_version: latest
+
+  tasks:
+
+    - name: Vérifier si Chocolatey est installé
+      win_chocolatey:
+        name: chocolatey
+        state: present
+      register: choco_installed
+      failed_when: "'module_stderr' in choco_installed and choco_installed.module_stderr"
+
+    - name: Réinstaller ou mettre à jour WinRAR via Chocolatey pour tous les utilisateurs
+      win_chocolatey:
+        name: winrar
+        state: latest
+        force: yes
+      register: winrar_installed
+      failed_when: "'module_stderr' in winrar_installed and winrar_installed.module_stderr"
+
+    - name: Vérifier l'installation de WinRAR via 'choco list'
+      win_command: choco list
+      register: choco_list_output
+      failed_when: "'module_stderr' in choco_list_output and choco_list_output.module_stderr"
+
+    - name: Afficher le résultat de 'choco list'
+      debug:
+        var: choco_list_output.stdout
+
+    - name: Vérifier si WinRAR est installé dans la liste
+      debug:
+        msg: "WinRAR est installé"
+      when: "'winrar' in choco_list_output.stdout.lower()"
+
+    - name: Échec de l'installation de WinRAR
+      debug:
+        msg: "WinRAR n'est pas installé"
+      when: "'winrar' not in choco_list_output.stdout.lower()"
