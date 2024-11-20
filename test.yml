@@ -1,0 +1,39 @@
+---
+- name: Test de connexion Windows
+  hosts: windows
+  gather_facts: no
+  tasks:
+    - name: Test ping Windows
+      win_ping:
+      register: ping_result
+
+    - name: Afficher le résultat du ping
+      debug:
+        var: ping_result
+
+    - name: Obtenir des informations système basiques
+      win_shell: |
+        $OS = Get-WmiObject -Class Win32_OperatingSystem
+        "OS: " + $OS.Caption
+        "Version: " + $OS.Version
+        "Architecture: " + $OS.OSArchitecture
+        "Hostname: " + $env:COMPUTERNAME
+      register: system_info
+
+    - name: Afficher les informations système
+      debug:
+        var: system_info.stdout_lines
+
+    - name: Test accès WinRM
+      win_shell: whoami
+      register: whoami_result
+
+    - name: Afficher l'utilisateur connecté
+      debug:
+        var: whoami_result.stdout_lines
+
+  handlers:
+    - name: Afficher message d'erreur
+      debug:
+        msg: "Erreur de connexion à l'hôte Windows"
+      when: ping_result is failed
